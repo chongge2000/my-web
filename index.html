@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>故事的开始</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffe0e9 0%, #ffd1dc 50%, #ffc0cb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 音乐引导遮罩 */
+        .music-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 220, 230, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            transition: opacity 0.6s ease;
+            opacity: 1;
+        }
+        .music-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .overlay-text {
+            font-size: 20px;
+            color: #ff4d79;
+            text-align: center;
+            font-weight: 500;
+            background: rgba(255,255,255,0.8);
+            padding: 18px 32px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(255,120,160,0.2);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        /* 音乐控制按钮 */
+        .music-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid #ffb6c8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #ff4d79;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(255, 120, 160, 0.15);
+            transition: 0.25s;
+            user-select: none;
+        }
+        .music-btn.playing {
+            background: #ff4d79;
+            color: #fff;
+            border-color: #ff4d79;
+        }
+        .music-btn:active {
+            transform: scale(0.92);
+        }
+        .page {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 24px;
+            padding: 20px 28px 35px;
+            box-shadow: 0 10px 40px rgba(255, 120, 160, 0.2);
+            display: none;
+            position: relative;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .top-label {
+            text-align: left;
+            font-size: 12px;
+            color: #e88da0;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+            padding-left: 2px;
+        }
+        h2 {
+            color: #ff4d79;
+            font-size: 22px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #777;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        .page1-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .page1-desc {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.7;
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            position: relative;
+            min-height: 50px;
+        }
+        .btn {
+            padding: 12px 36px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-primary {
+            background: #ff4d79;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #ff3366;
+            transform: scale(1.05);
+        }
+        .btn-primary:active {
+            background: #e6446a;
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: #eee;
+            color: #555;
+            position: relative;
+            transition: 0.08s;
+        }
+        .btn-next {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            font-size: 16px;
+        }
+        .btn-back {
+            background: none;
+            border: 1px solid #ffb6c8;
+            color: #ff4d79;
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 50px;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        .btn-back:hover {
+            background: #fff5f8;
+        }
+        .btn-back:active {
+            background: #ffe0e9;
+        }
+        .option-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .option-card {
+            padding: 16px 18px;
+            border: 2px solid #f0f0f0;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .option-card:hover {
+            border-color: #ffb6c8;
+        }
+        .option-card:active {
+            background: #fffafa;
+        }
+        .option-card.selected {
+            border-color: #ff4d79;
+            background: #fff5f8;
+        }
+        .option-card .name {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .option-card .tip {
+            font-size: 12px;
+            color: #999;
+        }
+        .option-card.unavailable {
+            opacity: 0.55;
+            cursor: not-allowed;
+            border-color: #f5f5f5;
+            background: #fafafa;
+        }
+        .option-card.unavailable:hover {
+            border-color: #f5f5f5;
+        }
+        .option-card.unavailable .name {
+            color: #aaa;
+        }
+        .option-card.unavailable .tip {
+            color: #c5c5c5;
+        }
+        .section-title {
+            font-size: 15px;
+            color: #555;
+            margin: 20px 0 12px;
+            font-weight: 500;
+        }
+        .section-title:first-child {
+            margin-top: 0;
+        }
+        .date-grid,
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        .time-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .date-item,
+        .time-item {
+            padding: 10px 0;
+            text-align: center;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .date-item small {
+            display: block;
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .date-item.selected,
+        .time-item.selected {
+            border-color: #ff4d79;
+            background: #fff5f8;
+            color: #ff4d79;
+        }
+        .date-item.selected small {
+            color: #ff8aa8;
+        }
+        .date-item:active,
+        .time-item:active {
+            background: #fffafa;
+        }
+        .no-schedule-tip {
+            text-align: center;
+            color: #c5a0a8;
+            font-size: 14px;
+            padding: 20px 10px;
+            background: #fff9fb;
+            border-radius: 12px;
+            border: 1px dashed #f0d0d8;
+            grid-column: 1 / -1;
+        }
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .food-item {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border: 2px solid #f0f0f0;
+            border-radius: 14px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            padding: 5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .food-item .emoji {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .food-item.selected {
+            border-color: #ff4d79;
+            background: #fff5f8;
+            color: #ff4d79;
+        }
+        .food-item:active {
+            background: #fffafa;
+        }
+        .letter-box {
+            background: #fff9fb;
+            border: 1px dashed #ffb6c8;
+            border-radius: 16px;
+            padding: 25px 20px;
+            margin-top: 10px;
+        }
+        .letter-title {
+            text-align: center;
+            font-size: 20px;
+            color: #ff4d79;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .letter-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px dotted #ffd6e0;
+            font-size: 15px;
+        }
+        .letter-row:last-child {
+            border-bottom: none;
+        }
+        .letter-label {
+            width: 70px;
+            color: #888;
+            flex-shrink: 0;
+        }
+        .letter-value {
+            color: #333;
+            flex: 1;
+        }
+        .letter-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #ff4d79;
+            font-size: 14px;
+        }
+        .heart {
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 10px;
+            animation: beat 1s infinite alternate;
+        }
+        @keyframes beat {
+            from { transform: scale(1); }
+            to { transform: scale(1.15); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 背景音乐 -->
+    <audio id="bgm" preload="auto" loop>
+        <source src="https://pdf2.webgetstore.com/2026/07/28/16b0fba2d2113b5bef352dfe2a481a60.mp3?sg=a2a53b5afeba462366646cec2d8ae4c0&e=6a682427&fileName=%E5%B0%8F%E5%AE%87.mp3&fi=302664573" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 音乐引导遮罩 -->
+    <div class="music-overlay" id="musicOverlay">
+        <div class="overlay-text">💌 点击任意位置开始我们的故事</div>
+    </div>
+
+    <!-- 音乐控制按钮 -->
+    <div class="music-btn" id="musicBtn" title="开启音乐">🎵</div>
+
+    <!-- 第1页：邀约首页 -->
+    <div class="page active" id="page1">
+        <div class="top-label">📖 故事的开始</div>
+        <h2 class="page1-title">✨ 有个小想法</h2>
+        <p class="page1-desc">
+            最近几部电影好像还不错<br>
+            想约你一起去看<br>
+            顺便吃个晚饭，要不要一起？
+        </p>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="goPage(2)">好呀</button>
+            <button class="btn btn-secondary" id="noBtn">算了</button>
+        </div>
+    </div>
+
+    <!-- 第2页：选电影 -->
+    <div class="page" id="page2">
+        <div class="top-label">📖 故事的开始</div>
+        <h2>选一部想看的电影</h2>
+        <p class="subtitle">挑一个你感兴趣的</p>
+        <div class="option-list" id="movieList">
+            <div class="option-card" data-value="功夫女足">
+                <div class="name">功夫女足</div>
+                <div class="tip">片长106分钟 · 黄金场排片稳定 · 两家影院均有场次</div>
+            </div>
+            <div class="option-card" data-value="特立独行">
+                <div class="name">特立独行</div>
+                <div class="tip">片长123分钟 · 每日仅1场 · 建议提前1天确认场次</div>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-next" onclick="nextFromMovie()">下一步</button>
+        <button class="btn btn-back" onclick="goPage(1)">返回</button>
+    </div>
+
+    <!-- 第3页：选日期+时间+影院 -->
+    <div class="page" id="page3">
+        <div class="top-label">📖 故事的开始</div>
+        <h2>选个时间和影院</h2>
+        <p class="subtitle">傍晚场，看完刚好吃饭</p>
+        <div class="section-title">观影日期</div>
+        <div class="date-grid" id="dateList">
+            <div class="date-item" data-value="7月28日 周一">7.28<small>周一</small></div>
+            <div class="date-item" data-value="7月29日 周二">7.29<small>周二</small></div>
+            <div class="date-item" data-value="7月30日 周三">7.30<small>周三</small></div>
+            <div class="date-item" data-value="7月31日 周四">7.31<small>周四</small></div>
+            <div class="date-item" data-value="8月1日 周五">8.01<small>周五</small></div>
+        </div>
+        <div class="section-title">开场时间</div>
+        <div class="time-grid" id="timeList"></div>
+        <div class="section-title">观影影院</div>
+        <div class="option-list" id="cinemaList"></div>
+        <button class="btn btn-primary btn-next" onclick="nextFromCinema()">下一步</button>
+        <button class="btn btn-back" onclick="goPage(2)">返回</button>
+    </div>
+
+    <!-- 第4页：选食物 -->
+    <div class="page" id="page4">
+        <div class="top-label">📖 故事的开始</div>
+        <h2>想吃点什么？</h2>
+        <p class="subtitle">9种类型随便挑</p>
+        <div class="food-grid" id="foodList">
+            <div class="food-item" data-value="火锅"><div class="emoji">🍲</div><div>火锅</div></div>
+            <div class="food-item" data-value="西餐"><div class="emoji">🥩</div><div>西餐</div></div>
+            <div class="food-item" data-value="炒菜"><div class="emoji">🥢</div><div>炒菜</div></div>
+            <div class="food-item" data-value="烤肉"><div class="emoji">🥓</div><div>烤肉</div></div>
+            <div class="food-item" data-value="日料"><div class="emoji">🍣</div><div>日料</div></div>
+            <div class="food-item" data-value="川湘菜"><div class="emoji">🌶️</div><div>川湘菜</div></div>
+            <div class="food-item" data-value="烧烤"><div class="emoji">🍢</div><div>烧烤</div></div>
+            <div class="food-item" data-value="自助餐"><div class="emoji">🍽️</div><div>自助餐</div></div>
+            <div class="food-item" data-value="甜品"><div class="emoji">🍰</div><div>甜品</div></div>
+        </div>
+        <button class="btn btn-primary btn-next" onclick="nextFromFood()">生成邀约</button>
+        <button class="btn btn-back" onclick="goPage(3)">返回</button>
+    </div>
+
+    <!-- 第5页：最终约会函 -->
+    <div class="page" id="page5">
+        <div class="top-label">📖 故事的开始</div>
+        <div class="heart">💌</div>
+        <div class="letter-box">
+            <div class="letter-title">约会邀请函</div>
+            <div class="letter-row"><div class="letter-label">日期</div><div class="letter-value" id="resDate">-</div></div>
+            <div class="letter-row"><div class="letter-label">电影</div><div class="letter-value" id="resMovie">-</div></div>
+            <div class="letter-row"><div class="letter-label">时间</div><div class="letter-value" id="resTime">-</div></div>
+            <div class="letter-row"><div class="letter-label">影院</div><div class="letter-value" id="resCinema">-</div></div>
+            <div class="letter-row"><div class="letter-label">用餐</div><div class="letter-value" id="resFood">-</div></div>
+            <div class="letter-footer">期待和你的见面 ✨</div>
+        </div>
+    </div>
+
+<script>
+    (function() {
+        // ============ 排片数据 ============
+        const scheduleData = {
+            '功夫女足': {
+                '万达影城（长虹路万达广场店）': ['17:10', '17:50', '18:40', '19:15', '19:50'],
+                '中影天河影城（武商购物中心沃尔玛店）': ['17:00', '17:40', '18:20', '19:00', '19:40']
+            },
+            '特立独行': {
+                '万达影城（长虹路万达广场店）': ['18:00'],
+                '中影天河影城（武商购物中心沃尔玛店）': ['17:30']
+            }
+        };
+
+        const cinemaDisplayInfo = {
+            '万达影城（长虹路万达广场店）': { name: '万达影城', tip: '长虹路万达广场3层' },
+            '中影天河影城（武商购物中心沃尔玛店）': { name: '中影天河影城', tip: '长虹路武商购物中心5楼（沃尔玛楼上）' }
+        };
+
+        // ============ 状态 ============
+        let selected = {
+            movie: '',
+            date: '',
+            time: '',
+            cinema: '',
+            food: ''
+        };
+        let lastRenderedMovie = '';
+
+        // ============ BGM 控制 ============
+        const bgm = document.getElementById('bgm');
+        const musicBtn = document.getElementById('musicBtn');
+        const musicOverlay = document.getElementById('musicOverlay');
+        let musicStarted = false;
+        const HIGHLIGHT_START = 65; // 高潮起始时间（秒）
+
+        function startMusic() {
+            if (!musicStarted) {
+                bgm.currentTime = HIGHLIGHT_START;
+                bgm.play().then(() => {
+                    musicStarted = true;
+                    musicBtn.classList.add('playing');
+                    musicBtn.innerHTML = '🎶';
+                    musicBtn.title = '关闭音乐';
+                    // 隐藏引导遮罩
+                    musicOverlay.classList.add('hidden');
+                }).catch(err => {
+                    console.log('播放失败，请手动点击按钮');
+                });
+            }
+        }
+
+        function toggleMusic() {
+            if (!musicStarted) {
+                startMusic();
+                return;
+            }
+            if (bgm.paused) {
+                bgm.currentTime = HIGHLIGHT_START;
+                bgm.play();
+                musicBtn.classList.add('playing');
+                musicBtn.innerHTML = '🎶';
+                musicBtn.title = '关闭音乐';
+            } else {
+                bgm.pause();
+                musicBtn.classList.remove('playing');
+                musicBtn.innerHTML = '🎵';
+                musicBtn.title = '开启音乐';
+            }
+        }
+
+        // 点击遮罩开始音乐
+        musicOverlay.addEventListener('click', startMusic);
+
+        // 音乐按钮点击
+        musicBtn.addEventListener('click', toggleMusic);
+
+        // 页面任意位置点击也可启动（仅第一次有效）
+        document.body.addEventListener('click', function initMusicOnFirstTouch(e) {
+            if (!musicStarted && e.target !== musicBtn && e.target !== musicOverlay && !e.target.closest('#musicOverlay')) {
+                startMusic();
+            }
+        }, { once: false });
+
+        // ============ 页面切换 ============
+        window.goPage = function(num) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page' + num).classList.add('active');
+            window.scrollTo(0, 0);
+            if (num === 3) renderSchedulePage();
+        };
+
+        // ============ 逃跑按钮 ============
+        const noBtn = document.getElementById('noBtn');
+        function runAway() {
+            const maxX = window.innerWidth - 100;
+            const maxY = window.innerHeight - 60;
+            noBtn.style.position = 'fixed';
+            noBtn.style.left = Math.random() * maxX + 'px';
+            noBtn.style.top = Math.random() * maxY + 'px';
+            noBtn.style.zIndex = 999;
+        }
+        noBtn.addEventListener('mouseover', runAway);
+        noBtn.addEventListener('touchstart', e => { e.preventDefault(); runAway(); });
+
+        // ============ 电影选择 ============
+        document.getElementById('movieList').addEventListener('click', function(e) {
+            const card = e.target.closest('.option-card');
+            if (!card || card.classList.contains('unavailable')) return;
+            this.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selected.movie = card.dataset.value;
+        });
+
+        window.nextFromMovie = function() {
+            if (!selected.movie) return alert('先选一部电影呀～');
+            if (selected.movie !== lastRenderedMovie) {
+                selected.time = '';
+                selected.cinema = '';
+                lastRenderedMovie = '';
+            }
+            goPage(3);
+        };
+
+        // ============ 日期选择 ============
+        document.getElementById('dateList').addEventListener('click', function(e) {
+            const item = e.target.closest('.date-item');
+            if (!item) return;
+            this.querySelectorAll('.date-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            selected.date = item.dataset.value;
+        });
+
+        // ============ 渲染排片 ============
+        function renderSchedulePage() {
+            const movie = selected.movie;
+            const timeListContainer = document.getElementById('timeList');
+            const cinemaListContainer = document.getElementById('cinemaList');
+
+            if (movie !== lastRenderedMovie) {
+                selected.time = '';
+                selected.cinema = '';
+                lastRenderedMovie = movie;
+            }
+
+            if (!movie || !scheduleData[movie]) {
+                timeListContainer.innerHTML = '<div class="no-schedule-tip">请先选择一部电影</div>';
+                cinemaListContainer.innerHTML = '';
+                return;
+            }
+
+            const movieSchedule = scheduleData[movie];
+            const allTimesSet = new Set();
+            for (let times of Object.values(movieSchedule)) times.forEach(t => allTimesSet.add(t));
+            const allTimes = Array.from(allTimesSet).sort();
+
+            if (allTimes.length === 0) {
+                timeListContainer.innerHTML = '<div class="no-schedule-tip">该影片近期暂无黄金场排片</div>';
+                cinemaListContainer.innerHTML = '';
+                return;
+            }
+
+            timeListContainer.innerHTML = allTimes.map(t => {
+                return `<div class="time-item${selected.time === t ? ' selected' : ''}" data-value="${t}">${t}</div>`;
+            }).join('');
+
+            renderCinemaList(movieSchedule, selected.time);
+
+            timeListContainer.onclick = function(e) {
+                const timeItem = e.target.closest('.time-item');
+                if (!timeItem) return;
+                const timeValue = timeItem.dataset.value;
+                timeListContainer.querySelectorAll('.time-item').forEach(i => i.classList.remove('selected'));
+                timeItem.classList.add('selected');
+                selected.time = timeValue;
+                selected.cinema = '';
+                renderCinemaList(movieSchedule, timeValue);
+            };
+
+            cinemaListContainer.onclick = function(e) {
+                const card = e.target.closest('.option-card');
+                if (!card || card.classList.contains('unavailable')) return;
+                cinemaListContainer.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selected.cinema = card.dataset.value;
+            };
+        }
+
+        function renderCinemaList(movieSchedule, selectedTime) {
+            const cinemaListContainer = document.getElementById('cinemaList');
+            let availableCinemas = Object.keys(movieSchedule).filter(c => movieSchedule[c].length > 0);
+            if (selectedTime) {
+                availableCinemas = availableCinemas.filter(c => movieSchedule[c].includes(selectedTime));
+            }
+            if (availableCinemas.length === 0) {
+                cinemaListContainer.innerHTML = '<div class="no-schedule-tip" style="grid-column:1/-1;">该时间暂无匹配影院</div>';
+                selected.cinema = '';
+                return;
+            }
+            cinemaListContainer.innerHTML = availableCinemas.map(cinema => {
+                const info = cinemaDisplayInfo[cinema] || { name: cinema, tip: '' };
+                const isSelected = selected.cinema === cinema;
+                if (availableCinemas.length === 1 && selectedTime && !selected.cinema) {
+                    selected.cinema = cinema;
+                    return `<div class="option-card selected" data-value="${cinema}"><div class="name">${info.name}</div><div class="tip">${info.tip}</div></div>`;
+                }
+                return `<div class="option-card${isSelected ? ' selected' : ''}" data-value="${cinema}"><div class="name">${info.name}</div><div class="tip">${info.tip}</div></div>`;
+            }).join('');
+        }
+
+        window.nextFromCinema = function() {
+            if (!selected.date) return alert('选个日期吧～');
+            if (!selected.time) return alert('选个开场时间呀～');
+            if (!selected.cinema) return alert('选一家影院呀～');
+            goPage(4);
+        };
+
+        // ============ 食物选择 ============
+        document.getElementById('foodList').addEventListener('click', function(e) {
+            const item = e.target.closest('.food-item');
+            if (!item) return;
+            this.querySelectorAll('.food-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            selected.food = item.dataset.value;
+        });
+
+        window.nextFromFood = function() {
+            if (!selected.food) return alert('选个想吃的类型～');
+            document.getElementById('resDate').textContent = selected.date;
+            document.getElementById('resMovie').textContent = selected.movie;
+            document.getElementById('resTime').textContent = selected.time + ' 开场';
+            document.getElementById('resCinema').textContent = selected.cinema;
+            document.getElementById('resFood').textContent = selected.food;
+            goPage(5);
+        };
+
+        // 初始化第3页空状态
+        document.getElementById('timeList').innerHTML = '<div class="no-schedule-tip">请先选择一部电影</div>';
+    })();
+</script>
+</body>
+</html>
